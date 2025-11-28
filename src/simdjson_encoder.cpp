@@ -45,6 +45,13 @@ extern "C" {
 #include "simdjson_smart_str.h"
 #include "simdutf.h"
 
+#if defined(_MSC_VER)
+  #include <intrin.h>
+#else
+  #include <cpuid.h>
+#endif
+
+
 static zend_always_inline bool simdjson_check_stack_limit(void) {
 #ifdef ZEND_CHECK_STACK_LIMIT
 	return zend_call_stack_overflowed(EG(stack_limit));
