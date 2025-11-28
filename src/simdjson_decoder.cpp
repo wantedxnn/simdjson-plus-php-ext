@@ -12,7 +12,6 @@
   +----------------------------------------------------------------------+
 */
 
-
 extern "C" {
 #include <ext/spl/spl_exceptions.h>
 #include <Zend/zend_exceptions.h>
@@ -26,7 +25,6 @@ extern "C" {
 
 #define SIMDJSON_PHP_TRY(EXPR) { auto _err = (EXPR); if (UNEXPECTED(_err)) { return _err; } }
 #define SIMDJSON_PHP_CHECK_ERROR(EXPR) { auto _err = (EXPR).error(); if (UNEXPECTED(_err)) { return _err; } }
-#define SIMDJSON_PHP_VALUE(EXPR) ({ auto _res = EXPR; auto _err = _res.error(); if (UNEXPECTED(_err)) { return _err; } _res.value_unsafe(); })
 
 #define SIMDJSON_DEPTH_CHECK_THRESHOLD 100000
 
@@ -38,8 +36,8 @@ PHP_SIMDJSON_API const char* php_simdjson_error_msg(simdjson_php_error_code erro
             return "Invalid property name";
         default:
             const char *error_message = simdjson::error_message((simdjson::error_code) error);
-            // Remove error code name from message
-            char* colon = strchr((char*)error_message, ':');
+            // MSVC specific: strchr returns const char* if input is const
+            char* colon = const_cast<char*>(strchr(error_message, ':'));
             if (colon == NULL) {
                 return error_message;
             }
@@ -633,15 +631,24 @@ static simdjson_php_error_code simdjson_ondemand_validate(simdjson::ondemand::va
         return simdjson::DEPTH_ERROR;
     }
 
-    switch (SIMDJSON_PHP_VALUE(element.type())) {
+    auto _type_res = element.type();
+    if (UNEXPECTED(_type_res.error())) { return _type_res.error(); }
+
+    switch (_type_res.value_unsafe()) {
         case simdjson::ondemand::json_type::array:
             for (auto child : element.get_array()) {
-                SIMDJSON_PHP_TRY(simdjson_ondemand_validate(SIMDJSON_PHP_VALUE(child), max_depth));
+                auto _child_res = child;
+                if (UNEXPECTED(_child_res.error())) { return _child_res.error(); }
+                SIMDJSON_PHP_TRY(simdjson_ondemand_validate(_child_res.value_unsafe(), max_depth));
             }
             break;
         case simdjson::ondemand::json_type::object:
             for (auto field : element.get_object()) {
-                SIMDJSON_PHP_TRY(simdjson_ondemand_validate(SIMDJSON_PHP_VALUE(field).value(), max_depth));
+                auto _field_res = field;
+                if (UNEXPECTED(_field_res.error())) { return _field_res.error(); }
+                // Fix for C2039: field.value() returns ondemand::value directly, not a Result object.
+                simdjson::ondemand::value val = _field_res.value_unsafe().value();
+                SIMDJSON_PHP_TRY(simdjson_ondemand_validate(val, max_depth));
             }
             break;
         case simdjson::ondemand::json_type::number:
@@ -658,7 +665,10 @@ static simdjson_php_error_code simdjson_ondemand_validate(simdjson::ondemand::va
 }
 
 static inline simdjson_php_error_code simdjson_ondemand_validate_scalar(simdjson::ondemand::document *element) {
-    switch (SIMDJSON_PHP_VALUE(element->type())) {
+    auto _type_res = element->type();
+    if (UNEXPECTED(_type_res.error())) { return _type_res.error(); }
+
+    switch (_type_res.value_unsafe()) {
         case simdjson::ondemand::json_type::number:
             return element->get_number().error();
         case simdjson::ondemand::json_type::string:
@@ -678,7 +688,11 @@ PHP_SIMDJSON_API simdjson_php_error_code php_simdjson_validate(simdjson_php_pars
 
     SIMDJSON_PHP_TRY(parser->ondemand_parser.allocate(ZSTR_LEN(json), depth));
     SIMDJSON_PHP_TRY(parser->ondemand_parser.iterate(simdjson_padded_string_view(json, jsonbuffer)).get(doc));
-    if (SIMDJSON_PHP_VALUE(doc.is_scalar())) {
+    
+    auto _scalar_res = doc.is_scalar();
+    if (UNEXPECTED(_scalar_res.error())) { return _scalar_res.error(); }
+
+    if (_scalar_res.value_unsafe()) {
         return simdjson_ondemand_validate_scalar(&doc);
     }
 
@@ -707,8 +721,7 @@ PHP_SIMDJSON_API simdjson_php_error_code php_simdjson_parse_buffer(simdjson_php_
 }
 
 /* }}} */
-PHP_SIMDJSON_API simdjson_php_error_code php_simdjson_key_value(simdjson_php_parser* parser, const zend_string *json, const char *key, zval *return_value, bool associative,
-                              size_t depth) /* {{{ */ {
+PHP_SIMDJSON_API simdjson_php_error_code php_simdjson_key_value(simdjson_php_parser* parser, const zend_string *json, const char *key, zval *return_value, bool associative, size_t depth) /* {{{ */ {
     simdjson::dom::element doc;
     simdjson::dom::element element;
     SIMDJSON_PHP_TRY(build_parsed_json_cust(parser, doc, ZSTR_VAL(json), ZSTR_LEN(json), simdjson_realloc_needed(json), depth));
