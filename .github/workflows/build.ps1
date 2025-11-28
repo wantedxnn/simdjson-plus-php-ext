@@ -4,7 +4,7 @@ $env:PATH = "C:\php\devel;C:\php\bin;C:\php\deps\bin;$env:PATH"
 
 $task = New-Item 'task.bat' -Force
 Add-Content $task 'call phpize 2>&1'
-Add-Content $task "call configure --with-php-build=C:\php\deps --enable-$env:PHP_EXT --enable-debug-pack 2>&1"
+Add-Content $task "call configure --enable-native-intrinsics=avx2 --with-php-build=C:\php\deps --enable-$env:PHP_EXT --enable-debug-pack 2>&1"
 Add-Content $task 'nmake /nologo 2>&1'
 Add-Content $task 'exit %errorlevel%'
 & "C:\php\php-sdk-$env:BIN_SDK_VER\phpsdk-$env:VS-$env:ARCH.bat" -t $task
