@@ -5,6 +5,15 @@
 
 #include "php.h"
 
+// MSVC COMPATIBILITY FIXES
+#ifdef _MSC_VER
+// Define UNEXPECTED/EXPECTED if missing (common in some MSVC PHP build setups)
+#ifndef UNEXPECTED
+#define UNEXPECTED(condition) (condition)
+#define EXPECTED(condition)   (condition)
+#endif
+#endif
+
 // ZSTR_IS_VALID_UTF8 is available since PHP 8.3
 #ifndef ZSTR_IS_VALID_UTF8
 #define ZSTR_IS_VALID_UTF8(s) (GC_FLAGS(s) & IS_STR_VALID_UTF8)
