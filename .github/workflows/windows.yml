@@ -1,9 +1,7 @@
 name: Windows
 
 on:
-  push:
-  release:
-    types: [published]
+  workflow_dispatch: # Allows manual triggering from the GitHub UI
 
 env:
   PHP_EXT: simdjson_plus
