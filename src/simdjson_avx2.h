@@ -2,9 +2,13 @@
 #define SIMDJSON_VECTOR8_TARGET_AVX2_H
 
 #include <stdint.h>
+#ifdef _MSC_VER // visual studio
+#include <immintrin.h>
+#define TARGET_AVX2
+#else // elsewhere
 #include <x86intrin.h>
-
 #define TARGET_AVX2 __attribute__((target("avx2")))
+#endif
 
 #define simdjson_avx2_or _mm256_or_si256
 #define simdjson_avx2_eq _mm256_cmpeq_epi8
@@ -34,8 +38,8 @@ struct simdjson_avx2 {
     }
 
     TARGET_AVX2 inline uint64_t escape_index(uint64_t mask) {
-        return __builtin_ctzll(mask);
+        return _trailing_zeroes(mask);
     }
 };
 
-#endif //SIMDJSON_VECTOR8_TARGET_AVX2_H
+#endif // SIMDJSON_VECTOR8_TARGET_AVX2_H
