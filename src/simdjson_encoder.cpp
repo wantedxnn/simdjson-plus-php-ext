@@ -559,7 +559,6 @@ static zend_always_inline bool simdjson_avx2_supported() {
     #endif
 #endif
 }
-#endif
 
 TARGET_AVX2 static inline void simdjson_escape_long_string_avx2(smart_str *buf, const char *s, size_t len) {
 	return simdjson_escape_long_string<simdjson_avx2>(buf, s, len);
