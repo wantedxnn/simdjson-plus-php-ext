@@ -44,8 +44,6 @@ PHP_SIMDJSON_API zend_class_entry *simdjson_base64_encode_ce;
 #include "src/simdjson.h"
 #include "src/simdutf.h"
 
-#include "simdjson_arginfo.h"
-
 static zend_string *simdjson_json_empty_array;
 zend_string *simdjson_json_serialize;
 
@@ -84,6 +82,10 @@ static zend_always_inline bool simdjson_validate_depth(zend_long depth, const in
     }
     return true;
 }
+
+extern "C" {
+	
+	#include "simdjson_arginfo.h"
 
 PHP_FUNCTION(simdjson_validate) {
     zend_string *json = NULL;
@@ -615,7 +617,7 @@ PHP_METHOD(SimdJsonBase64Encode, jsonSerialize) {
 /** {{{ PHP_GINIT_FUNCTION
 */
 PHP_GINIT_FUNCTION (simdjson) {
-#if defined(COMPILE_DL_SIMDJSON) && defined(ZTS)
+#if defined(COMPILE_DL_SIMDJSON_PLUS) && defined(ZTS)
     ZEND_TSRMLS_CACHE_UPDATE();
 #endif
 }
@@ -732,3 +734,5 @@ ZEND_TSRMLS_CACHE_DEFINE();
 ZEND_GET_MODULE(simdjson)
 #endif
 /* }}} */
+
+} /* end extern "C" */
