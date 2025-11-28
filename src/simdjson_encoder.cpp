@@ -528,6 +528,18 @@ static zend_always_inline bool simdjson_avx2_supported() {
 #endif
 #ifdef __builtin_cpu_supports
     return __builtin_cpu_supports("avx2"); // check support in runtime
+#else
+
+	int cpuInfo[4];
+	__cpuid(cpuInfo, 0);
+	int nIds = cpuInfo[0];
+
+	if (nIds >= 7) {
+		__cpuidex(cpuInfo, 7, 0);
+		return (cpuInfo[1] & (1 << 5)) != 0;
+	}
+
+	return false;
 #endif
 }
 
